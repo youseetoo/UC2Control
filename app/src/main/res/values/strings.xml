@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">UC2 Control</string>
+    <string name="connect">Connect to ESP32</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_connected">Connected — %1$d baud</string>
+
+    <string-array name="baud_rates">
+        <item>9600</item>
+        <item>115200</item>
+        <item>250000</item>
+        <item>500000</item>
+        <item>1000000</item>
+        <item>2000000</item>
+    </string-array>
+</resources>
