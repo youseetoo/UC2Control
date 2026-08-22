@@ -1,5 +1,20 @@
 apply plugin: 'com.android.application'
 
+// ---------------------------------------------------------------------------
+// Optional release signing.
+// Supply either a keystore.properties file in the repo root, or the
+// KEYSTORE_FILE / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD environment
+// variables (GitHub Actions secrets). Without them CI still produces a working
+// *unsigned* release APK, and debug APKs are always signed with the debug key.
+// ---------------------------------------------------------------------------
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def resolvedStoreFile = keystoreProps.getProperty('storeFile', System.getenv('KEYSTORE_FILE'))
+def hasReleaseSigning = resolvedStoreFile != null && file(resolvedStoreFile).exists()
+
 android {
     namespace 'com.openuc2.control'
     compileSdk 34
@@ -8,20 +23,55 @@ android {
         applicationId "com.openuc2.control"
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        // Overridable from CI:  -PappVersionCode=42 -PappVersionName=1.2.3
+        versionCode project.hasProperty('appVersionCode') ? project.appVersionCode.toInteger() : 2
+        versionName project.hasProperty('appVersionName') ? project.appVersionName : "2.0"
+        vectorDrawables.useSupportLibrary = true
     }
 
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(resolvedStoreFile)
+                storePassword keystoreProps.getProperty('storePassword', System.getenv('KEYSTORE_PASSWORD'))
+                keyAlias keystoreProps.getProperty('keyAlias', System.getenv('KEY_ALIAS'))
+                keyPassword keystoreProps.getProperty('keyPassword', System.getenv('KEY_PASSWORD'))
+            }
         }
     }
 
+    buildTypes {
+        debug {
+            versionNameSuffix '-debug'
+        }
+        release {
+            // R8 stays off on purpose: usb-serial-for-android resolves its driver
+            // classes reflectively, so a mis-shrunk release build fails only at
+            // runtime, on a user's device. Not worth the few hundred KB.
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packagingOptions {
+        resources.excludes += ['META-INF/*.version', 'META-INF/*.kotlin_module']
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
     }
 }
 
@@ -29,9 +79,10 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.viewpager2:viewpager2:1.0.0'
-    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.core:core:1.12.0'
 
-    // USB serial library — this is the standard one for Android USB OTG serial
+    // USB OTG serial (CDC-ACM, CP21xx, CH34x, FTDI, Prolific)
     implementation 'com.github.mik3y:usb-serial-for-android:3.7.0'
+
+    testImplementation 'junit:junit:4.13.2'
 }

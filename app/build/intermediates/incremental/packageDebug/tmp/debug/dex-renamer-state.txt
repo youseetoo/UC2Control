@@ -1,4 +1,4 @@
-#Sun May 03 23:05:52 CEST 2026
+#Sat Aug 22 18:56:39 CEST 2026
 base.0=/Users/bene/Downloads/UC2Control/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
 base.1=/Users/bene/Downloads/UC2Control/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex
 base.2=/Users/bene/Downloads/UC2Control/app/build/intermediates/dex/debug/mergeProjectDexDebug/15/classes.dex
