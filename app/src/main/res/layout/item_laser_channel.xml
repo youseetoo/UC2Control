@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One illumination channel. Inflated once per channel by MainActivity so the
+     five rows cannot drift apart. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_marginBottom="6dp">
+
+    <LinearLayout style="@style/Row">
+
+        <TextView
+            android:id="@+id/laser_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="@font/space_grotesk_medium"
+            android:textSize="14sp"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/laser_value"
+            android:layout_width="52dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:layout_marginEnd="10dp"
+            android:fontFamily="@font/ibm_plex_mono"
+            android:textSize="14sp"
+            android:textColor="@color/primary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/laser_on"
+            style="@style/Btn.Small.On"
+            android:layout_marginEnd="6dp"
+            android:text="On" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/laser_off"
+            style="@style/Btn.Small.Off"
+            android:text="Off" />
+    </LinearLayout>
+
+    <SeekBar
+        android:id="@+id/laser_seek"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="1023"
+        android:progressTint="@color/go"
+        android:thumbTint="@color/primary" />
+</LinearLayout>

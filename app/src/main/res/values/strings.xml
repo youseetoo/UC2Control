@@ -1,16 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">UC2 Control</string>
-    <string name="connect">Connect to ESP32</string>
-    <string name="disconnect">Disconnect</string>
-    <string name="status_disconnected">Disconnected</string>
-    <string name="status_connected">Connected — %1$d baud</string>
+    <string name="tagline">USB OTG control for openUC2 ESP32 boards</string>
 
-    <string-array name="baud_rates">
-        <item>9600</item>
+    <!-- Connection -->
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="connecting">Connecting…</string>
+    <string name="status_disconnected">Not connected</string>
+    <string name="status_connecting">Connecting to %1$s…</string>
+    <string name="status_connected">%1$s · %2$d baud</string>
+    <string name="baud">Baud rate</string>
+    <string name="apply_baud">Apply</string>
+    <string name="diagnostics">Diagnostics</string>
+    <string name="force_driver">Force driver</string>
+
+    <!-- Tabs -->
+    <string name="tab_stage">Stage</string>
+    <string name="tab_light">Light</string>
+    <string name="tab_setup">Setup</string>
+    <string name="tab_console">Console</string>
+
+    <!-- Stage -->
+    <string name="stage_title">Stage jog</string>
+    <string name="stage_hint">A = 0, X = 1, Y = 2, Z = 3. Steps are relative to the current position.</string>
+    <string name="step_size">Step size</string>
+    <string name="speed">Speed</string>
+    <string name="stop_all">STOP ALL</string>
+    <string name="motor_power">Motor power</string>
+    <string name="auto_enable_hint">Auto: coils are powered only while moving. Always on: the stage holds position but the drivers stay warm.</string>
+
+    <!-- Light -->
+    <string name="lasers_title">Laser / LED channels</string>
+    <string name="laser_hint">PWM 0–1023 per channel. The slider sends while you drag.</string>
+    <string name="matrix_title">LED matrix</string>
+    <string name="matrix_hint">Ring and half-field patterns for bright-field and oblique illumination.</string>
+    <string name="matrix_grid_title">Single LEDs (8×8)</string>
+
+    <!-- Setup -->
+    <string name="homing_title">Homing</string>
+    <string name="tmc_title">TMC stepper driver</string>
+    <string name="tmc_hint">Only relevant for CAN-based motor drivers. Axis: 0 = A, 1 = X, 2 = Y, 3 = Z.</string>
+    <string name="can_title">CAN address</string>
+    <string name="can_hint">MASTER = 1, A = 10, X = 11, Y = 12, Z = 13, Laser = 20, LED = 30.</string>
+    <string name="board_title">Board</string>
+    <string name="bt_pair">Pair PS4 controller</string>
+
+    <!-- Console -->
+    <string name="console_title">Serial console</string>
+    <string name="send">Send</string>
+    <string name="clear">Clear</string>
+    <string name="share_log">Share log</string>
+    <string name="cmd_hint">{"task":"/state_get"}</string>
+    <string name="append_newline">Append newline</string>
+    <string name="autoscroll">Auto-scroll</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_logo">openUC2</string>
+    <string name="cd_status">Connection status</string>
+
+    <!-- Baud rates. Mirrors the WebSerial reference tool, 115200 first. -->
+    <string-array name="baud_rate_labels">
         <item>115200</item>
-        <item>250000</item>
+        <item>921600</item>
         <item>500000</item>
+        <item>250000</item>
+        <item>128000</item>
+        <item>9600</item>
+        <item>19200</item>
+        <item>38400</item>
+        <item>57600</item>
         <item>1000000</item>
         <item>2000000</item>
     </string-array>

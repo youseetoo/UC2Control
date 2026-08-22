@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tab_content_light"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="gone"
+    android:fillViewport="true"
+    android:scrollbarStyle="outsideOverlay">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- ===== Laser / LED PWM channels ===== -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/Text.SectionTitle" android:text="@string/lasers_title" />
+            <TextView style="@style/Text.Hint" android:text="@string/laser_hint" />
+
+            <!-- Channels are inflated into here by MainActivity -->
+            <LinearLayout
+                android:id="@+id/laser_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <!-- ===== LED matrix patterns ===== -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/Text.SectionTitle" android:text="@string/matrix_title" />
+            <TextView style="@style/Text.Hint" android:text="@string/matrix_hint" />
+
+            <LinearLayout style="@style/Row">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_led_fill"
+                    style="@style/Btn.Small.On"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="All on" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_led_off"
+                    style="@style/Btn.Small.Off"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="All off" />
+            </LinearLayout>
+
+            <View style="@style/Divider" />
+
+            <TextView style="@style/Text.Label" android:text="Rings" />
+            <LinearLayout style="@style/Row" android:layout_marginBottom="4dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_ring_outer"
+                    style="@style/Btn.Small"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:text="Outer" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_ring_middle"
+                    style="@style/Btn.Small"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:text="Middle" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_ring_center"
+                    style="@style/Btn.Small"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="Centre" />
+            </LinearLayout>
+
+            <TextView style="@style/Text.Label" android:text="Halves (oblique illumination)" />
+            <LinearLayout style="@style/Row" android:layout_marginBottom="6dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_half_top"
+                    style="@style/Btn.Accent"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:textSize="13sp"
+                    android:text="Top" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_half_bottom"
+                    style="@style/Btn.Accent"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:textSize="13sp"
+                    android:text="Bottom" />
+            </LinearLayout>
+            <LinearLayout style="@style/Row">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_half_left"
+                    style="@style/Btn.Accent"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:textSize="13sp"
+                    android:text="Left" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_half_right"
+                    style="@style/Btn.Accent"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:textSize="13sp"
+                    android:text="Right" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===== 8x8 single-LED grid ===== -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/Text.SectionTitle" android:text="@string/matrix_grid_title" />
+
+            <GridLayout
+                android:id="@+id/led_grid"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="6dp"
+                android:columnCount="8" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

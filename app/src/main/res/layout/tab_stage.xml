@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tab_content_stage"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbarStyle="outsideOverlay">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- ===== Emergency stop, kept at the top so it is always the first
+                  thing your thumb can reach ===== -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_stop_all"
+            style="@style/Btn.Danger"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginBottom="12dp"
+            android:textSize="16sp"
+            android:fontFamily="@font/space_grotesk_bold"
+            android:text="@string/stop_all" />
+
+        <!-- ===== Jog ===== -->
+        <LinearLayout style="@style/Card">
+
+            <TextView style="@style/Text.SectionTitle" android:text="@string/stage_title" />
+            <TextView style="@style/Text.Hint" android:text="@string/stage_hint" />
+
+            <LinearLayout style="@style/Row">
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="@string/step_size" />
+                    <EditText
+                        android:id="@+id/et_step"
+                        style="@style/NumberInput"
+                        android:text="1000"
+                        android:autofillHints="" />
+                </LinearLayout>
+
+                <LinearLayout style="@style/FieldColumn" android:layout_marginEnd="0dp">
+                    <TextView style="@style/Text.Label" android:text="@string/speed" />
+                    <EditText
+                        android:id="@+id/et_speed"
+                        style="@style/NumberInput"
+                        android:text="15000"
+                        android:autofillHints="" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View style="@style/Divider" />
+
+            <!-- X -->
+            <LinearLayout style="@style/Row" android:layout_marginBottom="8dp">
+                <TextView style="@style/Text.AxisLabel" android:text="X" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_x_minus" style="@style/Btn.Jog" android:text="−" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_x_plus" style="@style/Btn.Jog" android:text="+" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_x_forever_minus" style="@style/Btn.Jog.Continuous" android:text="∞−" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_x_forever_plus" style="@style/Btn.Jog.Continuous" android:text="∞+" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_x_stop" style="@style/Btn.Jog.Stop" android:text="Stop" />
+            </LinearLayout>
+
+            <!-- Y -->
+            <LinearLayout style="@style/Row" android:layout_marginBottom="8dp">
+                <TextView style="@style/Text.AxisLabel" android:text="Y" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_y_minus" style="@style/Btn.Jog" android:text="−" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_y_plus" style="@style/Btn.Jog" android:text="+" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_y_forever_minus" style="@style/Btn.Jog.Continuous" android:text="∞−" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_y_forever_plus" style="@style/Btn.Jog.Continuous" android:text="∞+" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_y_stop" style="@style/Btn.Jog.Stop" android:text="Stop" />
+            </LinearLayout>
+
+            <!-- Z -->
+            <LinearLayout style="@style/Row" android:layout_marginBottom="8dp">
+                <TextView style="@style/Text.AxisLabel" android:text="Z" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_z_minus" style="@style/Btn.Jog" android:text="−" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_z_plus" style="@style/Btn.Jog" android:text="+" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_z_forever_minus" style="@style/Btn.Jog.Continuous" android:text="∞−" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_z_forever_plus" style="@style/Btn.Jog.Continuous" android:text="∞+" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_z_stop" style="@style/Btn.Jog.Stop" android:text="Stop" />
+            </LinearLayout>
+
+            <!-- A -->
+            <LinearLayout style="@style/Row">
+                <TextView style="@style/Text.AxisLabel" android:text="A" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_a_minus" style="@style/Btn.Jog" android:text="−" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_a_plus" style="@style/Btn.Jog" android:text="+" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_a_forever_minus" style="@style/Btn.Jog.Continuous" android:text="∞−" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_a_forever_plus" style="@style/Btn.Jog.Continuous" android:text="∞+" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_a_stop" style="@style/Btn.Jog.Stop" android:text="Stop" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===== Motor power ===== -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/Text.SectionTitle" android:text="@string/motor_power" />
+            <TextView style="@style/Text.Hint" android:text="@string/auto_enable_hint" />
+
+            <LinearLayout style="@style/Row">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_auto_enable_on"
+                    style="@style/Btn.Small.On"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="Auto" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_auto_enable_off"
+                    style="@style/Btn.Small"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="Always on" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/Row" android:layout_marginTop="8dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_motors_on"
+                    style="@style/Btn.Small"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="Motors on" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_motors_off"
+                    style="@style/Btn.Small.Off"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="Motors off" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

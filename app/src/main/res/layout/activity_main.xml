@@ -1,390 +1,153 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg"
-    android:fillViewport="true">
+    android:orientation="vertical"
+    android:background="@color/bg">
 
+    <!-- ============ Brand header ============ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_header"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="26dp"
+            android:adjustViewBounds="true"
+            android:src="@drawable/uc2_logo"
+            android:contentDescription="@string/cd_logo" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_status_pill"
+            android:paddingStart="10dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <View
+                android:id="@+id/status_dot"
+                android:layout_width="9dp"
+                android:layout_height="9dp"
+                android:layout_marginEnd="7dp"
+                android:background="@drawable/status_dot"
+                android:contentDescription="@string/cd_status" />
+
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/status_disconnected"
+                android:textColor="@color/text_on_brand"
+                android:textSize="12sp"
+                android:maxWidth="200dp"
+                android:singleLine="true"
+                android:ellipsize="middle" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ============ Connection bar ============ -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:background="@color/surface"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
 
-        <!-- ====== Header / Connection ====== -->
-        <androidx.cardview.widget.CardView
-            style="@style/Card">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/app_name"
-                    android:textColor="@color/text"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="USB OTG control for ESP32"
-                    android:textColor="@color/text_muted"
-                    android:textSize="12sp"
-                    android:layout_marginBottom="10dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Baud:"
-                        android:textColor="@color/text"
-                        android:layout_gravity="center_vertical"
-                        android:paddingEnd="6dp" />
-
-                    <Spinner
-                        android:id="@+id/spinner_baud"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1" />
-
-                    <Button
-                        android:id="@+id/btn_change_baud"
-                        style="@style/SecondaryBtn"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:text="Apply" />
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/btn_connect"
-                    style="@style/PrimaryBtn"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/connect" />
-
-                <TextView
-                    android:id="@+id/tv_status"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:gravity="center"
-                    android:text="@string/status_disconnected"
-                    android:textColor="@color/text_muted" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- ====== Stage / Motor Jog ====== -->
-        <androidx.cardview.widget.CardView style="@style/Card">
+        <LinearLayout style="@style/Row">
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:layout_marginEnd="10dp">
 
-                <TextView style="@style/SectionTitle" android:text="Stage Jog (XYZA)" />
+                <TextView style="@style/Text.Label" android:text="@string/baud" />
 
-                <!-- Step / speed inputs -->
-                <LinearLayout
+                <Spinner
+                    android:id="@+id/spinner_baud"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="8dp">
-
-                    <LinearLayout style="@style/InputCol">
-                        <TextView style="@style/InputLabel" android:text="Step XY" />
-                        <EditText
-                            android:id="@+id/et_step_xy"
-                            style="@style/NumberInput"
-                            android:text="1000" />
-                    </LinearLayout>
-                    <LinearLayout style="@style/InputCol">
-                        <TextView style="@style/InputLabel" android:text="Step Z" />
-                        <EditText
-                            android:id="@+id/et_step_z"
-                            style="@style/NumberInput"
-                            android:text="100" />
-                    </LinearLayout>
-                    <LinearLayout style="@style/InputCol">
-                        <TextView style="@style/InputLabel" android:text="Step A" />
-                        <EditText
-                            android:id="@+id/et_step_a"
-                            style="@style/NumberInput"
-                            android:text="1000" />
-                    </LinearLayout>
-                    <LinearLayout style="@style/InputCol">
-                        <TextView style="@style/InputLabel" android:text="Speed" />
-                        <EditText
-                            android:id="@+id/et_speed"
-                            style="@style/NumberInput"
-                            android:text="15000" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- X axis -->
-                <TextView style="@style/AxisLabel" android:text="X axis" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_x_minus" style="@style/JogBtn" android:text="X−" />
-                    <Button android:id="@+id/btn_x_forever_minus" style="@style/JogBtn" android:text="◀◀" />
-                    <Button android:id="@+id/btn_x_stop" style="@style/StopBtn" android:text="STOP" />
-                    <Button android:id="@+id/btn_x_forever_plus" style="@style/JogBtn" android:text="▶▶" />
-                    <Button android:id="@+id/btn_x_plus" style="@style/JogBtn" android:text="X+" />
-                </LinearLayout>
-
-                <!-- Y axis -->
-                <TextView style="@style/AxisLabel" android:text="Y axis" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_y_minus" style="@style/JogBtn" android:text="Y−" />
-                    <Button android:id="@+id/btn_y_forever_minus" style="@style/JogBtn" android:text="◀◀" />
-                    <Button android:id="@+id/btn_y_stop" style="@style/StopBtn" android:text="STOP" />
-                    <Button android:id="@+id/btn_y_forever_plus" style="@style/JogBtn" android:text="▶▶" />
-                    <Button android:id="@+id/btn_y_plus" style="@style/JogBtn" android:text="Y+" />
-                </LinearLayout>
-
-                <!-- Z axis -->
-                <TextView style="@style/AxisLabel" android:text="Z axis (focus)" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_z_minus" style="@style/JogBtn" android:text="Z−" />
-                    <Button android:id="@+id/btn_z_minus_fine" style="@style/JogBtn" android:text="z−" />
-                    <Button android:id="@+id/btn_z_stop" style="@style/StopBtn" android:text="STOP" />
-                    <Button android:id="@+id/btn_z_plus_fine" style="@style/JogBtn" android:text="z+" />
-                    <Button android:id="@+id/btn_z_plus" style="@style/JogBtn" android:text="Z+" />
-                </LinearLayout>
-
-                <!-- A axis -->
-                <TextView style="@style/AxisLabel" android:text="A axis" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_a_minus" style="@style/JogBtn" android:text="A−" />
-                    <Button android:id="@+id/btn_a_stop" style="@style/StopBtn" android:text="STOP" />
-                    <Button android:id="@+id/btn_a_plus" style="@style/JogBtn" android:text="A+" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="10dp"
-                    android:gravity="center_vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Auto-enable motors"
-                        android:textColor="@color/text"
-                        android:layout_weight="1" />
-
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/switch_motor_enable"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_input"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
 
-        <!-- ====== Lasers ====== -->
-        <androidx.cardview.widget.CardView style="@style/Card">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_change_baud"
+                style="@style/Btn.Outline"
+                android:layout_gravity="bottom"
+                android:text="@string/apply_baud" />
+        </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
+        <LinearLayout
+            style="@style/Row"
+            android:layout_marginTop="10dp">
 
-                <TextView style="@style/SectionTitle" android:text="Lasers (PWM 0–1023)" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_connect"
+                style="@style/Btn"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/connect" />
 
-                <!-- Laser 0 -->
-                <TextView style="@style/AxisLabel" android:text="Laser 0" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_laser0_on" style="@style/PrimaryBtn"
-                        android:layout_weight="1" android:text="ON" />
-                    <Button android:id="@+id/btn_laser0_off" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="OFF" />
-                    <TextView android:id="@+id/tv_laser0_val"
-                        style="@style/SliderValue" android:text="0" />
-                </LinearLayout>
-                <SeekBar android:id="@+id/seek_laser0" style="@style/LaserSeek" />
-
-                <!-- Laser 1 -->
-                <TextView style="@style/AxisLabel" android:text="Laser 1" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_laser1_on" style="@style/PrimaryBtn"
-                        android:layout_weight="1" android:text="ON" />
-                    <Button android:id="@+id/btn_laser1_off" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="OFF" />
-                    <TextView android:id="@+id/tv_laser1_val"
-                        style="@style/SliderValue" android:text="0" />
-                </LinearLayout>
-                <SeekBar android:id="@+id/seek_laser1" style="@style/LaserSeek" />
-
-                <!-- Laser 2 -->
-                <TextView style="@style/AxisLabel" android:text="Laser 2" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_laser2_on" style="@style/PrimaryBtn"
-                        android:layout_weight="1" android:text="ON" />
-                    <Button android:id="@+id/btn_laser2_off" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="OFF" />
-                    <TextView android:id="@+id/tv_laser2_val"
-                        style="@style/SliderValue" android:text="0" />
-                </LinearLayout>
-                <SeekBar android:id="@+id/seek_laser2" style="@style/LaserSeek" />
-
-                <!-- Laser 3 -->
-                <TextView style="@style/AxisLabel" android:text="Laser 3" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_laser3_on" style="@style/PrimaryBtn"
-                        android:layout_weight="1" android:text="ON" />
-                    <Button android:id="@+id/btn_laser3_off" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="OFF" />
-                    <TextView android:id="@+id/tv_laser3_val"
-                        style="@style/SliderValue" android:text="0" />
-                </LinearLayout>
-                <SeekBar android:id="@+id/seek_laser3" style="@style/LaserSeek" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- ====== LED Ring ====== -->
-        <androidx.cardview.widget.CardView style="@style/Card">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
-
-                <TextView style="@style/SectionTitle" android:text="LED Array / Ring" />
-
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_led_full_on" style="@style/PrimaryBtn"
-                        android:layout_weight="1" android:text="All ON" />
-                    <Button android:id="@+id/btn_led_full_off" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="All OFF" />
-                </LinearLayout>
-
-                <TextView style="@style/AxisLabel" android:text="Outer ring" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_outer_on" style="@style/PrimaryBtn"
-                        android:layout_weight="1" android:text="ON" />
-                    <Button android:id="@+id/btn_outer_off" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="OFF" />
-                </LinearLayout>
-
-                <TextView style="@style/AxisLabel" android:text="Middle ring" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_middle_on" style="@style/PrimaryBtn"
-                        android:layout_weight="1" android:text="ON" />
-                    <Button android:id="@+id/btn_middle_off" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="OFF" />
-                </LinearLayout>
-
-                <TextView style="@style/AxisLabel" android:text="Center" />
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_center_on" style="@style/PrimaryBtn"
-                        android:layout_weight="1" android:text="ON" />
-                    <Button android:id="@+id/btn_center_off" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="OFF" />
-                </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- ====== Homing ====== -->
-        <androidx.cardview.widget.CardView style="@style/Card">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
-
-                <TextView style="@style/SectionTitle" android:text="Homing" />
-
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_home_x" style="@style/JogBtn"
-                        android:layout_weight="1" android:text="Home X" />
-                    <Button android:id="@+id/btn_home_y" style="@style/JogBtn"
-                        android:layout_weight="1" android:text="Home Y" />
-                </LinearLayout>
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_home_z" style="@style/JogBtn"
-                        android:layout_weight="1" android:text="Home Z" />
-                    <Button android:id="@+id/btn_home_a" style="@style/JogBtn"
-                        android:layout_weight="1" android:text="Home A" />
-                </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- ====== Serial Console ====== -->
-        <androidx.cardview.widget.CardView style="@style/Card">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
-
-                <TextView style="@style/SectionTitle" android:text="Serial Console" />
-
-                <LinearLayout style="@style/JogRow">
-                    <Button android:id="@+id/btn_get_state" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="Get state" />
-                    <Button android:id="@+id/btn_clear_console" style="@style/SecondaryBtn"
-                        android:layout_weight="1" android:text="Clear" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/tv_console"
-                    android:layout_width="match_parent"
-                    android:layout_height="240dp"
-                    android:layout_marginTop="6dp"
-                    android:background="@color/console_bg"
-                    android:fontFamily="monospace"
-                    android:gravity="bottom"
-                    android:padding="8dp"
-                    android:scrollbars="vertical"
-                    android:textColor="@color/console_text"
-                    android:textSize="12sp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="6dp">
-
-                    <EditText
-                        android:id="@+id/et_cmd"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:hint="Type JSON command…"
-                        android:fontFamily="monospace"
-                        android:textColor="@color/text"
-                        android:textColorHint="@color/text_muted"
-                        android:imeOptions="actionSend"
-                        android:inputType="text"
-                        android:singleLine="true" />
-
-                    <Button
-                        android:id="@+id/btn_send_cmd"
-                        style="@style/PrimaryBtn"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:text="Send" />
-                </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <Space android:layout_width="match_parent" android:layout_height="24dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_diagnostics"
+                style="@style/Btn.Outline"
+                android:text="@string/diagnostics" />
+        </LinearLayout>
     </LinearLayout>
-</ScrollView>
+
+    <!-- ============ Tabs ============ -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        app:tabMode="fixed"
+        app:tabGravity="fill"
+        app:tabIndicatorColor="@color/go"
+        app:tabIndicatorHeight="3dp"
+        app:tabSelectedTextColor="@color/primary"
+        app:tabTextColor="@color/text_muted"
+        app:tabRippleColor="@color/uc2_blue_tint"
+        app:tabTextAppearance="@style/Text.Tab" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <!-- ============ Tab content ============ -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <include layout="@layout/tab_stage" />
+        <include layout="@layout/tab_light" />
+        <include layout="@layout/tab_setup" />
+        <include layout="@layout/tab_console" />
+    </FrameLayout>
+</LinearLayout>

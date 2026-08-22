@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tab_content_console"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:visibility="gone"
+    android:background="@drawable/bg_card"
+    android:layout_margin="12dp"
+    android:padding="16dp">
+
+    <LinearLayout style="@style/Row" android:layout_marginBottom="8dp">
+        <TextView
+            style="@style/Text.SectionTitle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/console_title" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switch_autoscroll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:text="@string/autoscroll" />
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/console_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@drawable/bg_console"
+        android:padding="10dp"
+        android:scrollbarStyle="insideOverlay">
+
+        <TextView
+            android:id="@+id/tv_console"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/ibm_plex_mono"
+            android:textSize="11sp"
+            android:textColor="@color/console_text"
+            android:textIsSelectable="true" />
+    </ScrollView>
+
+    <EditText
+        android:id="@+id/et_cmd"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_input"
+        android:padding="10dp"
+        android:minHeight="44dp"
+        android:maxLines="4"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:imeOptions="actionSend"
+        android:fontFamily="@font/ibm_plex_mono"
+        android:textSize="12sp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_muted"
+        android:hint="@string/cmd_hint"
+        android:autofillHints="" />
+
+    <LinearLayout style="@style/Row" android:layout_marginTop="10dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_send_cmd"
+            style="@style/Btn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="@string/send" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_clear_console"
+            style="@style/Btn.Outline"
+            android:layout_marginEnd="8dp"
+            android:text="@string/clear" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_share_log"
+            style="@style/Btn.Outline"
+            android:text="@string/share_log" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tab_content_setup"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="gone"
+    android:fillViewport="true"
+    android:scrollbarStyle="outsideOverlay">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- ===== Homing ===== -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/Text.SectionTitle" android:text="@string/homing_title" />
+
+            <LinearLayout style="@style/Row" android:layout_marginTop="6dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_home_x" style="@style/Btn.Jog" android:text="Home X" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_home_y" style="@style/Btn.Jog" android:text="Home Y" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_home_z" style="@style/Btn.Jog" android:text="Home Z" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_home_a" style="@style/Btn.Jog" android:text="Home A" />
+            </LinearLayout>
+
+            <View style="@style/Divider" />
+
+            <TextView style="@style/Text.Label" android:text="Custom homing run" />
+
+            <LinearLayout style="@style/Row">
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="Stepper id" />
+                    <EditText android:id="@+id/et_home_id" style="@style/NumberInput"
+                        android:text="2" android:autofillHints="" />
+                </LinearLayout>
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="Timeout ms" />
+                    <EditText android:id="@+id/et_home_timeout" style="@style/NumberInput"
+                        android:text="20000" android:autofillHints="" />
+                </LinearLayout>
+                <LinearLayout style="@style/FieldColumn" android:layout_marginEnd="0dp">
+                    <TextView style="@style/Text.Label" android:text="Speed" />
+                    <EditText android:id="@+id/et_home_speed" style="@style/NumberInput"
+                        android:text="15000" android:autofillHints="" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout style="@style/Row" android:layout_marginTop="8dp">
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="Direction" />
+                    <EditText android:id="@+id/et_home_dir" style="@style/NumberInput"
+                        android:text="-1" android:autofillHints="" />
+                </LinearLayout>
+                <LinearLayout style="@style/FieldColumn" android:layout_marginEnd="0dp">
+                    <TextView style="@style/Text.Label" android:text="Endstop polarity" />
+                    <EditText android:id="@+id/et_home_endstop" style="@style/NumberInput"
+                        android:text="0" android:autofillHints="" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_home_custom"
+                style="@style/Btn.Go"
+                android:layout_width="match_parent"
+                android:layout_marginTop="10dp"
+                android:text="Run homing" />
+        </LinearLayout>
+
+        <!-- ===== TMC ===== -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/Text.SectionTitle" android:text="@string/tmc_title" />
+            <TextView style="@style/Text.Hint" android:text="@string/tmc_hint" />
+
+            <LinearLayout style="@style/Row">
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="µsteps" />
+                    <EditText android:id="@+id/et_tmc_msteps" style="@style/NumberInput"
+                        android:text="16" android:autofillHints="" />
+                </LinearLayout>
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="RMS current" />
+                    <EditText android:id="@+id/et_tmc_rms" style="@style/NumberInput"
+                        android:text="700" android:autofillHints="" />
+                </LinearLayout>
+                <LinearLayout style="@style/FieldColumn" android:layout_marginEnd="0dp">
+                    <TextView style="@style/Text.Label" android:text="sgthrs" />
+                    <EditText android:id="@+id/et_tmc_sgthrs" style="@style/NumberInput"
+                        android:text="15" android:autofillHints="" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout style="@style/Row" android:layout_marginTop="8dp">
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="semin" />
+                    <EditText android:id="@+id/et_tmc_semin" style="@style/NumberInput"
+                        android:text="5" android:autofillHints="" />
+                </LinearLayout>
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="semax" />
+                    <EditText android:id="@+id/et_tmc_semax" style="@style/NumberInput"
+                        android:text="2" android:autofillHints="" />
+                </LinearLayout>
+                <LinearLayout style="@style/FieldColumn" android:layout_marginEnd="0dp">
+                    <TextView style="@style/Text.Label" android:text="blank time" />
+                    <EditText android:id="@+id/et_tmc_blank" style="@style/NumberInput"
+                        android:text="24" android:autofillHints="" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout style="@style/Row" android:layout_marginTop="8dp">
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="toff" />
+                    <EditText android:id="@+id/et_tmc_toff" style="@style/NumberInput"
+                        android:text="4" android:autofillHints="" />
+                </LinearLayout>
+                <LinearLayout style="@style/FieldColumn" android:layout_marginEnd="0dp">
+                    <TextView style="@style/Text.Label" android:text="axis" />
+                    <EditText android:id="@+id/et_tmc_axis" style="@style/NumberInput"
+                        android:text="2" android:autofillHints="" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout style="@style/Row" android:layout_marginTop="10dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_tmc_update"
+                    style="@style/Btn"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="Apply TMC" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_tmc_get"
+                    style="@style/Btn.Outline"
+                    android:text="Read" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===== CAN ===== -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/Text.SectionTitle" android:text="@string/can_title" />
+            <TextView style="@style/Text.Hint" android:text="@string/can_hint" />
+
+            <LinearLayout style="@style/Row">
+                <LinearLayout style="@style/FieldColumn">
+                    <TextView style="@style/Text.Label" android:text="Address" />
+                    <EditText android:id="@+id/et_can_address" style="@style/NumberInput"
+                        android:text="1" android:autofillHints="" />
+                </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_can_set"
+                    style="@style/Btn.Accent"
+                    android:layout_gravity="bottom"
+                    android:text="Set" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===== Board ===== -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/Text.SectionTitle" android:text="@string/board_title" />
+
+            <LinearLayout style="@style/Row" android:layout_marginTop="4dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_get_state" style="@style/Btn.Jog" android:text="State" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_get_motor" style="@style/Btn.Jog" android:text="Motor" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_get_modules" style="@style/Btn.Jog" android:text="Modules" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/Row" android:layout_marginTop="8dp">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_bt_pair"
+                    style="@style/Btn.Accent"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/bt_pair" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_restart"
+                    style="@style/Btn.Danger"
+                    android:text="Restart" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===== Connection troubleshooting ===== -->
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/Text.SectionTitle" android:text="Connection" />
+            <TextView style="@style/Text.Hint"
+                android:text="Only touch these if the board is not detected or stays silent. Changes apply on the next connect." />
+
+            <TextView style="@style/Text.Label" android:text="@string/force_driver" />
+            <Spinner
+                android:id="@+id/spinner_driver"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_input"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:layout_marginBottom="10dp" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switch_dtr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:minHeight="40dp"
+                android:textColor="@color/text_primary"
+                android:text="DTR asserted (needed by ESP32-S3 native USB)" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switch_rts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:minHeight="40dp"
+                android:textColor="@color/text_primary"
+                android:text="RTS asserted (keep on to avoid holding EN low)" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switch_newline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:minHeight="40dp"
+                android:textColor="@color/text_primary"
+                android:text="@string/append_newline" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

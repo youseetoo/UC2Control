@@ -1,17 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg">#0F1419</color>
-    <color name="card_bg">#1A2332</color>
-    <color name="text">#E6EDF3</color>
-    <color name="text_muted">#8B98A5</color>
+    <!-- ===================================================================
+         openUC2 brand palette — openUC2_brandguide.pdf
+         =================================================================== -->
+    <color name="uc2_blue">#023773</color>       <!-- Main brand colour   -->
+    <color name="uc2_green">#85B918</color>      <!-- Secondary colour    -->
+    <color name="uc2_turquoise">#1F9C7C</color>  <!-- Third colour        -->
+    <color name="uc2_light_grey">#FAF9F9</color> <!-- Body colour         -->
+    <color name="uc2_grey">#999999</color>       <!-- Body colour         -->
 
-    <color name="primary">#85b918</color>
-    <color name="primary_dark">#999999</color>
-    <color name="secondary">#1f9c7c</color>
+    <!-- Tints/shades derived from the brand colours, for states and depth. -->
+    <color name="uc2_blue_dark">#01234B</color>
+    <color name="uc2_blue_tint">#E7EDF4</color>
+    <color name="uc2_green_dark">#6B9413</color>
+    <color name="uc2_turquoise_dark">#177A61</color>
 
-    <color name="stop">#E74C3C</color>
-    <color name="success">#27AE60</color>
+    <!-- ===================================================================
+         Semantic roles — use these in layouts, not the raw brand names.
+         =================================================================== -->
+    <color name="bg">@color/uc2_light_grey</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_sunken">#F0EFEF</color>
+    <color name="divider">#E3E1E1</color>
 
-    <color name="console_bg">#000000</color>
-    <color name="console_text">#33FF66</color>
+    <color name="text_primary">#1A1A1A</color>
+    <color name="text_secondary">#5C5C5C</color>
+    <color name="text_muted">@color/uc2_grey</color>
+    <color name="text_on_brand">#FFFFFF</color>
+
+    <color name="primary">@color/uc2_blue</color>
+    <color name="primary_dark">@color/uc2_blue_dark</color>
+    <color name="accent">@color/uc2_turquoise</color>
+    <color name="go">@color/uc2_green</color>
+
+    <color name="danger">#C0392B</color>
+    <color name="warning">#D68910</color>
+
+    <!-- Serial console keeps a terminal look: dark surface, brand-green text. -->
+    <color name="console_bg">#0C1A2B</color>
+    <color name="console_text">#D8E4F0</color>
+    <color name="console_tx">@color/uc2_green</color>
+    <color name="console_rx">#7FC6FF</color>
+    <color name="console_err">#FF8A7A</color>
+    <color name="console_meta">@color/uc2_grey</color>
+
+    <!-- Connection status dot -->
+    <color name="status_off">@color/uc2_grey</color>
+    <color name="status_on">@color/uc2_green</color>
+    <color name="status_busy">@color/warning</color>
+    <color name="status_err">@color/danger</color>
 </resources>
