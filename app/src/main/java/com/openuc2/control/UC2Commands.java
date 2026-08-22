@@ -4,39 +4,65 @@ import java.util.Locale;
 
 /**
  * Builders for the JSON commands the openUC2 ESP32 firmware expects.
- * Matches the protocol used in the WebSerial demo (laser_act, motor_act,
- * ledarr_act, home_act, tmc_act, can_act, bt_scan, state_get).
+ *
+ * The reference for this protocol is the WebSerial demo
+ * (indexWebSerialTest.html + js/hardwareControl.js + js/advancedControls.js).
+ * Where the two ever disagree, the web demo wins — it is what is actually
+ * tested against current firmware.
+ *
+ * Note on LEDs: current firmware uses the *action* form
+ * ({"led":{"action":"rings","radius":5,...}}). The older LEDArrMode/led_array
+ * form is still accepted by some builds, so it is kept here as
+ * {@link #ledLegacyFill} for boards running old firmware.
  */
 public final class UC2Commands {
 
+    /** Stepper ids, per the web demo: "Axis mapping: A=0, X=1, Y=2, Z=3." */
     public static final int STEPPER_A = 0;
     public static final int STEPPER_X = 1;
     public static final int STEPPER_Y = 2;
     public static final int STEPPER_Z = 3;
 
+    public static final int LASER_CHANNELS = 5;   // web demo exposes light0..light4
+    public static final int LASER_MAX = 1023;
+
     private UC2Commands() {}
 
-    // === State ===
+    // ======================================================================
+    // State / board
+    // ======================================================================
 
-    public static String getState() {
-        return "{\"task\":\"/state_get\"}";
-    }
+    public static String getState()   { return "{\"task\":\"/state_get\"}"; }
+    public static String getMotor()   { return "{\"task\":\"/motor_get\"}"; }
+    public static String getModules() { return "{\"task\":\"/modules_get\"}"; }
+    public static String getTmc()     { return "{\"task\":\"/tmc_get\"}"; }
+    public static String getHome()    { return "{\"task\":\"/home_get\"}"; }
+    public static String restart()    { return "{\"task\":\"/state_act\",\"restart\":1}"; }
 
-    // === Lasers (PWM channels 0..3) ===
+    // ======================================================================
+    // Lasers / illumination (PWM channels 0..4, value 0..1023)
+    // ======================================================================
 
-    /** value in 0..1023 */
     public static String setLaser(int channel, int value) {
         return String.format(Locale.US,
                 "{\"task\":\"/laser_act\",\"LASERid\":%d,\"LASERval\":%d}",
-                channel, clamp(value, 0, 1023));
+                channel, clamp(value, 0, LASER_MAX));
     }
 
-    public static String laserOn(int channel) { return setLaser(channel, 1024); }
+    public static String laserOn(int channel)  { return setLaser(channel, LASER_MAX); }
     public static String laserOff(int channel) { return setLaser(channel, 0); }
 
-    // === Motors ===
+    /** Servo-style PWM frequency for a channel. */
+    public static String setLaserFreq(int channel, int freq) {
+        return String.format(Locale.US,
+                "{\"task\":\"/laser_act\",\"LASERid\":%d,\"LASERFreq\":%d}", channel, freq);
+    }
 
-    /** Move a stepper a relative number of steps. */
+    // ======================================================================
+    // Motors
+    // ======================================================================
+
+    /** Relative move by {@code steps}. Negative steps reverse direction. */
     public static String motorStep(int stepperId, int steps, int speed) {
         return String.format(Locale.US,
                 "{\"task\":\"/motor_act\",\"motor\":{\"steppers\":[" +
@@ -44,7 +70,15 @@ public final class UC2Commands {
                 stepperId, steps, speed);
     }
 
-    /** Continuous motion until stop is sent. Negative speed reverses direction. */
+    /** Absolute move to {@code position}. */
+    public static String motorMoveAbsolute(int stepperId, int position, int speed) {
+        return String.format(Locale.US,
+                "{\"task\":\"/motor_act\",\"motor\":{\"steppers\":[" +
+                "{\"stepperid\":%d,\"position\":%d,\"speed\":%d,\"isabs\":1,\"isaccel\":0}]}}",
+                stepperId, position, speed);
+    }
+
+    /** Run until stopped. Negative speed reverses direction. */
     public static String motorForever(int stepperId, int speed) {
         return String.format(Locale.US,
                 "{\"task\":\"/motor_act\",\"motor\":{\"steppers\":[" +
@@ -55,64 +89,121 @@ public final class UC2Commands {
     public static String motorStop(int stepperId) {
         return String.format(Locale.US,
                 "{\"task\":\"/motor_act\",\"motor\":{\"steppers\":[" +
-                "{\"stepperid\":%d,\"isstop\":1}]}}",
-                stepperId);
+                "{\"stepperid\":%d,\"isstop\":1}]}}", stepperId);
     }
 
-    public static String motorEnable(boolean autoEnable) {
-        return "{\"task\":\"/motor_act\",\"isen\":1,\"isenauto\":" + (autoEnable ? 1 : 0) + "}";
+    /** Stop every axis. Sent one command per axis by the caller's convenience. */
+    public static String[] motorStopAll() {
+        return new String[] {
+                motorStop(STEPPER_A), motorStop(STEPPER_X),
+                motorStop(STEPPER_Y), motorStop(STEPPER_Z)
+        };
     }
 
-    // === LED array ===
-
-    public static String ledFullOn() {
-        return "{\"task\":\"/ledarr_act\",\"led\":{\"LEDArrMode\":1,\"led_array\":[{\"id\":0,\"r\":255,\"g\":255,\"b\":255}]}}";
+    /** Power the coils permanently (isenauto=0) or only while moving (isenauto=1). */
+    public static String motorAutoEnable(boolean auto) {
+        return "{\"task\":\"/motor_act\",\"isen\":1,\"isenauto\":" + (auto ? 1 : 0) + "}";
     }
 
-    public static String ledFullOff() {
-        return "{\"task\":\"/ledarr_act\",\"led\":{\"LEDArrMode\":1,\"led_array\":[{\"id\":0,\"r\":0,\"g\":0,\"b\":0}]}}";
+    /** Cut / restore coil current entirely. */
+    public static String motorEnable(boolean enabled) {
+        return "{\"task\":\"/motor_act\",\"isen\":" + (enabled ? 1 : 0) + "}";
     }
 
-    /** Build a ring command: turns LEDs in the inclusive id range on or off. */
-    public static String ledRing(int startId, int endId, int rgbValue) {
-        StringBuilder arr = new StringBuilder();
-        arr.append("[");
-        for (int i = startId; i <= endId; i++) {
-            if (i > startId) arr.append(",");
-            arr.append(String.format(Locale.US,
-                    "{\"id\":%d,\"r\":%d,\"g\":%d,\"b\":%d}",
-                    i, rgbValue, rgbValue, rgbValue));
-        }
-        arr.append("]");
-        return "{\"task\":\"/ledarr_act\",\"led\":{\"LEDArrMode\":8,\"led_array\":" + arr + "}}";
+    /** Declare the current position of an axis to be {@code posval}. */
+    public static String motorSetPosition(int stepperId, int posval) {
+        return String.format(Locale.US,
+                "{\"task\":\"/motor_act\",\"setpos\":{\"steppers\":[" +
+                "{\"stepperid\":%d,\"posval\":%d}]}}", stepperId, posval);
     }
 
-    public static String ledOuterRingOn()   { return ledRing(9, 24, 255); }
-    public static String ledOuterRingOff()  { return ledRing(9, 24, 0); }
-    public static String ledMiddleRingOn()  { return ledRing(1, 8, 255); }
-    public static String ledMiddleRingOff() { return ledRing(1, 8, 0); }
-    public static String ledCenterOn()      { return ledRing(0, 0, 255); }
-    public static String ledCenterOff()     { return ledRing(0, 0, 0); }
+    // ======================================================================
+    // LED array — current "action" protocol
+    // ======================================================================
 
-    // === Homing ===
+    public static String ledFill(int r, int g, int b) {
+        return String.format(Locale.US,
+                "{\"task\":\"/ledarr_act\",\"qid\":17,\"led\":{\"action\":\"fill\"," +
+                "\"r\":%d,\"g\":%d,\"b\":%d}}", clamp8(r), clamp8(g), clamp8(b));
+    }
+
+    public static String ledOff() {
+        return "{\"task\":\"/ledarr_act\",\"qid\":17,\"led\":{\"action\":\"off\"}}";
+    }
+
+    /** Concentric ring by radius. The web demo uses 5 = outer, 3 = middle, 2 = centre. */
+    public static String ledRing(int radius, int r, int g, int b) {
+        return String.format(Locale.US,
+                "{\"task\":\"/ledarr_act\",\"qid\":17,\"led\":{\"action\":\"rings\"," +
+                "\"radius\":%d,\"r\":%d,\"g\":%d,\"b\":%d}}",
+                radius, clamp8(r), clamp8(g), clamp8(b));
+    }
+
+    /** region: "top" | "bottom" | "left" | "right" — used for oblique illumination. */
+    public static String ledHalf(String region, int r, int g, int b) {
+        return String.format(Locale.US,
+                "{\"task\":\"/ledarr_act\",\"qid\":17,\"led\":{\"action\":\"halves\"," +
+                "\"region\":\"%s\",\"r\":%d,\"g\":%d,\"b\":%d}}",
+                region, clamp8(r), clamp8(g), clamp8(b));
+    }
+
+    /** Single LED in the matrix, addressed by index. */
+    public static String ledSingle(int index, int r, int g, int b) {
+        return String.format(Locale.US,
+                "{\"task\":\"/ledarr_act\",\"led\":{\"action\":\"single\"," +
+                "\"ledIndex\":%d,\"r\":%d,\"g\":%d,\"b\":%d}}",
+                index, clamp8(r), clamp8(g), clamp8(b));
+    }
+
+    /** Legacy LEDArrMode form, for boards still running older firmware. */
+    public static String ledLegacyFill(int r, int g, int b) {
+        return String.format(Locale.US,
+                "{\"task\":\"/ledarr_act\",\"led\":{\"LEDArrMode\":1,\"led_array\":[" +
+                "{\"id\":0,\"r\":%d,\"g\":%d,\"b\":%d}]}}", clamp8(r), clamp8(g), clamp8(b));
+    }
+
+    // ======================================================================
+    // Homing
+    // ======================================================================
 
     public static String homeStepper(int stepperId, int timeout, int speed,
                                      int direction, int endstopPolarity) {
         return String.format(Locale.US,
                 "{\"task\":\"/home_act\",\"home\":{\"steppers\":[" +
-                "{\"stepperid\":%d,\"timeout\":%d,\"speed\":%d,\"direction\":%d,\"endstoppolarity\":%d}]}}",
+                "{\"stepperid\":%d,\"timeout\":%d,\"speed\":%d,\"direction\":%d," +
+                "\"endstoppolarity\":%d}]}}",
                 stepperId, timeout, speed, direction, endstopPolarity);
     }
 
-    // === Bluetooth ===
+    // ======================================================================
+    // TMC stepper driver / CAN
+    // ======================================================================
 
-    public static String btPair() {
-        return "{\"task\":\"/bt_scan\"}";
+    public static String tmcSettings(int msteps, int rmsCurrent, int sgthrs,
+                                     int semin, int semax, int blankTime,
+                                     int toff, int axis) {
+        return String.format(Locale.US,
+                "{\"task\":\"/tmc_act\",\"msteps\":%d,\"rms_current\":%d,\"sgthrs\":%d," +
+                "\"semin\":%d,\"semax\":%d,\"blank_time\":%d,\"toff\":%d,\"axis\":%d}",
+                msteps, rmsCurrent, sgthrs, semin, semax, blankTime, toff, axis);
     }
 
-    // === helpers ===
-
-    private static int clamp(int v, int lo, int hi) {
-        return Math.max(lo, Math.min(hi, v));
+    /** Hint from the web demo: MASTER=1, A=10, X=11, Y=12, Z=13, LED=30, Laser=20. */
+    public static String canAddress(int address) {
+        return String.format(Locale.US,
+                "{\"task\":\"/can_act\",\"address\":%d,\"nodeId\":%d,\"canMotorAxis\":1}",
+                address, address);
     }
+
+    // ======================================================================
+    // Misc
+    // ======================================================================
+
+    /** Pair a PS4/BT controller. */
+    public static String btScan() { return "{\"task\":\"/bt_scan\"}"; }
+
+    // ======================================================================
+
+    private static int clamp(int v, int lo, int hi) { return Math.max(lo, Math.min(hi, v)); }
+    private static int clamp8(int v) { return clamp(v, 0, 255); }
 }

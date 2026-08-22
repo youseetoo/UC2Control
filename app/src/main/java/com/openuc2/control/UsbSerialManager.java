@@ -13,295 +13,475 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import androidx.core.content.ContextCompat;
+
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
-import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Wraps usb-serial-for-android. Provides connect/disconnect, baud-rate change,
- * write, and a listener interface for incoming bytes and connection-state changes.
+ * Owns everything USB: permission, open/close, baud changes, reads and writes.
+ * The UI layer only calls connect()/send()/disconnect() and reacts to callbacks,
+ * which always arrive on the main thread.
  *
- * Designed to be the only class that touches USB or threads — the UI layer just
- * calls connect()/sendCommand()/disconnect() and listens for callbacks on the
- * main thread.
+ * Two things here are deliberate and worth not "simplifying" later:
+ *
+ *  - Incoming bytes are batched. A chatty firmware at 921600 baud delivers
+ *    thousands of USB packets per second; posting one Runnable per packet to
+ *    the main thread is a guaranteed ANR. Reads accumulate into a buffer that
+ *    is flushed to the UI at {@link #FLUSH_INTERVAL_MS}.
+ *  - Any failure tears the port down completely. The previous version left a
+ *    dead port object in place, so isConnected() stayed true after a cable
+ *    drop and every later connect() attempt answered "already connected".
  */
 public class UsbSerialManager implements SerialInputOutputManager.Listener {
 
-    private static final String TAG = "UsbSerialManager";
+    private static final String TAG = "UC2Serial";
     private static final String ACTION_USB_PERMISSION = "com.openuc2.control.USB_PERMISSION";
 
+    /** UI refresh cadence for received data. 20 Hz reads as instant. */
+    private static final int FLUSH_INTERVAL_MS = 50;
+    private static final int WRITE_TIMEOUT_MS = 2000;
+
+    public enum State { DISCONNECTED, CONNECTING, CONNECTED }
+
+    public enum LogLevel { INFO, TX, RX, ERROR }
+
     public interface Listener {
-        void onSerialConnected(String deviceName);
-        void onSerialDisconnected();
-        void onSerialDataReceived(String data);
-        void onSerialError(String message);
-        void onSerialLog(String message);
+        void onStateChanged(State state, String detail);
+        void onSerialData(String data);
+        void onLog(LogLevel level, String message);
     }
 
     private final Context appContext;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
 
+    private final StringBuilder rxBuffer = new StringBuilder();
+    private final Object rxLock = new Object();
+    private boolean flushScheduled = false;
+
     private Listener listener;
-    private UsbSerialPort port;
-    private SerialInputOutputManager ioManager;
+    private volatile UsbSerialPort port;
+    private volatile SerialInputOutputManager ioManager;
+    private volatile State state = State.DISCONNECTED;
+
     private int currentBaud = 115200;
+    private boolean dtr = true;
+    private boolean rts = true;
+    private boolean appendNewline = true;
+    private int forcedDriverIndex = 0;
+    private String deviceLabel = "";
 
     private BroadcastReceiver permissionReceiver;
-    private boolean permissionReceiverRegistered = false;
 
     public UsbSerialManager(Context context) {
         this.appContext = context.getApplicationContext();
     }
 
-    public void setListener(Listener l) {
-        this.listener = l;
+    // ======================================================================
+    // Configuration
+    // ======================================================================
+
+    public void setListener(Listener l)          { this.listener = l; }
+    public boolean isConnected()                 { return state == State.CONNECTED; }
+    public State getState()                      { return state; }
+    public int getCurrentBaud()                  { return currentBaud; }
+    public String getDeviceLabel()               { return deviceLabel; }
+    public void setForcedDriverIndex(int index)  { this.forcedDriverIndex = index; }
+    public int getForcedDriverIndex()            { return forcedDriverIndex; }
+    public void setAppendNewline(boolean enable) { this.appendNewline = enable; }
+    public boolean getAppendNewline()            { return appendNewline; }
+    public boolean getDtr()                      { return dtr; }
+    public boolean getRts()                      { return rts; }
+
+    private UsbManager usbManager() {
+        return (UsbManager) appContext.getSystemService(Context.USB_SERVICE);
     }
 
-    public boolean isConnected() {
-        return port != null && port.isOpen();
+    public String diagnostics() {
+        return UsbDrivers.describeAttachedDevices(usbManager());
     }
 
-    public int getCurrentBaud() {
-        return currentBaud;
-    }
+    // ======================================================================
+    // Connect
+    // ======================================================================
 
-    /** Look for a connected USB device that matches a known serial driver. */
-    public UsbDevice findFirstDevice() {
-        UsbManager usbManager = (UsbManager) appContext.getSystemService(Context.USB_SERVICE);
-        List<UsbSerialDriver> drivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager);
-        if (drivers.isEmpty()) return null;
-        return drivers.get(0).getDevice();
+    /** Connect to the first suitable device at {@code baudRate}. */
+    public void connect(int baudRate) {
+        connect(baudRate, null);
     }
 
     /**
-     * Top-level connect entry point. Finds the first available serial device,
-     * requests permission if needed, and opens the port at the given baud rate.
+     * Connect to {@code target}, or to the best auto-detected device when it is
+     * null. Requests USB permission first if we do not already hold it.
      */
-    public void connect(int baudRate) {
-        if (isConnected()) {
-            log("Already connected");
+    public void connect(int baudRate, UsbDevice target) {
+        if (state != State.DISCONNECTED) {
+            log(LogLevel.INFO, "Connect ignored — already "
+                    + state.name().toLowerCase(java.util.Locale.US));
             return;
         }
         currentBaud = baudRate;
 
-        UsbManager usbManager = (UsbManager) appContext.getSystemService(Context.USB_SERVICE);
-        List<UsbSerialDriver> drivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager);
-
-        if (drivers.isEmpty()) {
-            error("No USB serial device found. Plug in your ESP32 via OTG and try again.");
+        UsbManager manager = usbManager();
+        if (manager == null) {
+            fail("This device has no USB host service.");
             return;
         }
 
-        UsbSerialDriver driver = drivers.get(0);
+        UsbSerialDriver driver = resolveDriver(manager, target);
+        if (driver == null) return;   // resolveDriver already reported why
+
         UsbDevice device = driver.getDevice();
-        log("Found device: " + device.getDeviceName()
-                + " (VID=0x" + Integer.toHexString(device.getVendorId())
-                + " PID=0x" + Integer.toHexString(device.getProductId()) + ")");
+        deviceLabel = UsbDrivers.label(device);
+        setState(State.CONNECTING, deviceLabel);
+        log(LogLevel.INFO, "Using " + driver.getClass().getSimpleName() + " for " + deviceLabel);
 
-        if (!usbManager.hasPermission(device)) {
-            requestPermission(usbManager, driver, baudRate);
-            return;
+        if (!manager.hasPermission(device)) {
+            requestPermission(manager, driver, baudRate);
+        } else {
+            openDriver(manager, driver, baudRate);
         }
-
-        openDriver(usbManager, driver, baudRate);
     }
 
-    private void requestPermission(UsbManager usbManager, UsbSerialDriver driver, int baudRate) {
-        log("Requesting USB permission...");
+    /** Pick a driver: explicit device, forced class, or auto-detect. */
+    private UsbSerialDriver resolveDriver(UsbManager manager, UsbDevice target) {
+        if (target != null) {
+            UsbSerialDriver forced = UsbDrivers.forceDriver(target, forcedDriverIndex);
+            if (forced != null) return forced;
+            UsbSerialDriver probed = UsbDrivers.probe(target);
+            if (probed != null) return probed;
+            fail("No driver matches " + UsbDrivers.label(target)
+                    + ". Pick one under Force driver.");
+            return null;
+        }
+
+        List<UsbSerialDriver> drivers = UsbDrivers.findDrivers(manager);
+        if (!drivers.isEmpty()) {
+            UsbSerialDriver auto = drivers.get(0);
+            if (forcedDriverIndex > 0) {
+                UsbSerialDriver forced =
+                        UsbDrivers.forceDriver(auto.getDevice(), forcedDriverIndex);
+                if (forced != null) return forced;
+            }
+            return auto;
+        }
+
+        // Nothing matched. If a device is attached at all, let the user force a
+        // driver onto it rather than dead-ending.
+        java.util.Collection<UsbDevice> attached = manager.getDeviceList().values();
+        if (attached.isEmpty()) {
+            fail("No USB device found. Check the OTG adapter and use a data cable.");
+            return null;
+        }
+        if (forcedDriverIndex > 0) {
+            UsbDevice first = attached.iterator().next();
+            UsbSerialDriver forced = UsbDrivers.forceDriver(first, forcedDriverIndex);
+            if (forced != null) return forced;
+        }
+        fail(attached.size() + " USB device(s) attached but none is a known serial chip. "
+                + "Open Diagnostics, or set Force driver.");
+        return null;
+    }
+
+    private void requestPermission(UsbManager manager, UsbSerialDriver driver, int baudRate) {
+        log(LogLevel.INFO, "Requesting USB permission…");
+        unregisterPermissionReceiver();
 
         permissionReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (!ACTION_USB_PERMISSION.equals(intent.getAction())) return;
-                synchronized (this) {
-                    boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
-                    if (granted) {
-                        openDriver(usbManager, driver, baudRate);
-                    } else {
-                        error("USB permission denied");
-                    }
-                    unregisterPermissionReceiver();
+                unregisterPermissionReceiver();
+                boolean granted =
+                        intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+                if (granted) {
+                    openDriver(manager, driver, baudRate);
+                } else {
+                    fail("USB permission denied. Re-plug the board and tap Allow.");
                 }
             }
         };
 
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        int flags = 0;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            flags = PendingIntent.FLAG_MUTABLE;
-        }
-        PendingIntent pi = PendingIntent.getBroadcast(
-                appContext, 0, new Intent(ACTION_USB_PERMISSION).setPackage(appContext.getPackageName()), flags);
+        // ContextCompat picks the right registerReceiver overload per API level;
+        // NOT_EXPORTED is required from Android 14 on.
+        ContextCompat.registerReceiver(appContext, permissionReceiver,
+                new IntentFilter(ACTION_USB_PERMISSION), ContextCompat.RECEIVER_NOT_EXPORTED);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            appContext.registerReceiver(permissionReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            appContext.registerReceiver(permissionReceiver, filter);
-        }
-        permissionReceiverRegistered = true;
+        // Android 14 rejects a mutable PendingIntent carrying an implicit
+        // intent, so the target package must be set explicitly.
+        Intent intent = new Intent(ACTION_USB_PERMISSION).setPackage(appContext.getPackageName());
+        int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                ? PendingIntent.FLAG_MUTABLE : 0;
+        PendingIntent pi = PendingIntent.getBroadcast(appContext, 0, intent, flags);
 
-        usbManager.requestPermission(driver.getDevice(), pi);
+        try {
+            manager.requestPermission(driver.getDevice(), pi);
+        } catch (Exception e) {
+            unregisterPermissionReceiver();
+            fail("Could not request USB permission: " + e.getMessage());
+        }
     }
 
-    private void unregisterPermissionReceiver() {
-        if (permissionReceiverRegistered && permissionReceiver != null) {
+    private synchronized void unregisterPermissionReceiver() {
+        if (permissionReceiver != null) {
             try {
                 appContext.unregisterReceiver(permissionReceiver);
-            } catch (IllegalArgumentException ignored) { }
-            permissionReceiverRegistered = false;
+            } catch (IllegalArgumentException ignored) {
+                // not registered — fine
+            }
+            permissionReceiver = null;
         }
     }
 
-    private void openDriver(UsbManager usbManager, UsbSerialDriver driver, int baudRate) {
+    private void openDriver(UsbManager manager, UsbSerialDriver driver, int baudRate) {
         ioExecutor.submit(() -> {
+            UsbSerialPort newPort = null;
             try {
-                UsbDeviceConnection connection = usbManager.openDevice(driver.getDevice());
+                UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
                 if (connection == null) {
-                    error("Could not open USB connection");
+                    fail("Could not open the USB device. Another app may be holding it — "
+                            + "unplug and re-plug the board.");
                     return;
                 }
 
                 List<UsbSerialPort> ports = driver.getPorts();
                 if (ports.isEmpty()) {
-                    error("Device has no serial ports");
+                    connection.close();
+                    fail("Driver reported no serial ports on this device.");
                     return;
                 }
 
-                UsbSerialPort newPort = ports.get(0);
+                newPort = ports.get(0);
                 newPort.open(connection);
-                newPort.setParameters(baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-                try {
-                    newPort.setDTR(true);
-                    newPort.setRTS(true);
-                } catch (Exception e) {
-                    // some chips don't support this — non-fatal
-                }
+                newPort.setParameters(baudRate, 8, UsbSerialPort.STOPBITS_1,
+                        UsbSerialPort.PARITY_NONE);
 
-                this.port = newPort;
-                this.currentBaud = baudRate;
+                // Order matters. On boards with the classic auto-reset circuit
+                // the state (DTR=0, RTS=1) holds EN low, i.e. the ESP32 stays in
+                // reset. Raising DTR before RTS never passes through it.
+                applyControlLines(newPort, dtr, rts);
+
+                port = newPort;
+                currentBaud = baudRate;
 
                 ioManager = new SerialInputOutputManager(newPort, this);
                 ioManager.start();
 
-                final String name = driver.getDevice().getDeviceName();
-                mainHandler.post(() -> {
-                    if (listener != null) {
-                        listener.onSerialLog("Connected at " + baudRate + " baud");
-                        listener.onSerialConnected(name);
-                    }
-                });
+                setState(State.CONNECTED, deviceLabel);
+                log(LogLevel.INFO, "Connected to " + deviceLabel + " at " + baudRate + " baud");
             } catch (IOException e) {
-                error("Open failed: " + e.getMessage());
+                abortOpen(newPort, "Open failed: " + e.getMessage());
             } catch (Exception e) {
-                error("Unexpected error: " + e.getMessage());
+                abortOpen(newPort, "Unexpected error while opening: " + e);
             }
         });
     }
+
+    /** Roll back a half-finished open so the next connect() starts clean. */
+    private void abortOpen(UsbSerialPort newPort, String message) {
+        ioManager = null;
+        port = null;
+        closeQuietly(newPort);
+        fail(message);
+    }
+
+    private void applyControlLines(UsbSerialPort p, boolean wantDtr, boolean wantRts) {
+        try {
+            p.setDTR(wantDtr);
+            p.setRTS(wantRts);
+        } catch (Exception e) {
+            // Plenty of chips (and CDC in some firmwares) do not implement these.
+            log(LogLevel.INFO, "DTR/RTS not supported by this chip — continuing");
+        }
+    }
+
+    /** Change DTR/RTS on the fly; useful when a board refuses to talk. */
+    public void setControlLines(boolean wantDtr, boolean wantRts) {
+        this.dtr = wantDtr;
+        this.rts = wantRts;
+        UsbSerialPort p = port;
+        if (p == null || !p.isOpen()) return;
+        ioExecutor.submit(() -> {
+            applyControlLines(p, wantDtr, wantRts);
+            log(LogLevel.INFO, "DTR=" + wantDtr + " RTS=" + wantRts);
+        });
+    }
+
+    // ======================================================================
+    // Disconnect / baud change
+    // ======================================================================
 
     public void disconnect() {
+        if (state == State.DISCONNECTED && port == null) return;
         ioExecutor.submit(() -> {
-            try {
-                if (ioManager != null) {
-                    ioManager.setListener(null);
-                    ioManager.stop();
-                    ioManager = null;
-                }
-                if (port != null) {
-                    try { port.close(); } catch (IOException ignored) { }
-                    port = null;
-                }
-                mainHandler.post(() -> {
-                    if (listener != null) {
-                        listener.onSerialLog("Disconnected");
-                        listener.onSerialDisconnected();
-                    }
-                });
-            } catch (Exception e) {
-                Log.e(TAG, "Disconnect error", e);
-            }
+            teardown();
+            setState(State.DISCONNECTED, null);
+            log(LogLevel.INFO, "Disconnected");
         });
     }
 
-    /** Re-open the existing port at a new baud rate. */
+    /** Tear the port down. Always runs on the IO thread. */
+    private void teardown() {
+        SerialInputOutputManager mgr = ioManager;
+        ioManager = null;
+        if (mgr != null) {
+            try {
+                mgr.setListener(null);
+                mgr.stop();
+            } catch (Exception ignored) { }
+        }
+        UsbSerialPort p = port;
+        port = null;
+        closeQuietly(p);
+    }
+
+    private void closeQuietly(UsbSerialPort p) {
+        if (p == null) return;
+        try {
+            p.close();
+        } catch (Exception ignored) { }
+    }
+
+    /**
+     * Re-open the port at a new baud rate.
+     *
+     * The WebSerial reference closes and re-opens rather than reconfiguring in
+     * place, and so do we: several chips ignore a mid-stream setParameters, and
+     * a full re-open also resets the board so its boot banner confirms the new
+     * rate is right.
+     */
     public void changeBaud(int newBaud) {
-        if (port == null || !port.isOpen()) {
-            error("Not connected — cannot change baud rate");
+        if (state != State.CONNECTED) {
+            fail("Not connected — cannot change baud rate.");
             return;
         }
+        UsbSerialPort p = port;
+        if (p == null) return;
+        final UsbSerialDriver driver = p.getDriver();
+
         ioExecutor.submit(() -> {
+            teardown();
+            setState(State.CONNECTING, deviceLabel);
+            log(LogLevel.INFO, "Re-opening at " + newBaud + " baud…");
+            UsbManager manager = usbManager();
+            if (manager == null) {
+                setState(State.DISCONNECTED, null);
+                return;
+            }
+            openDriver(manager, driver, newBaud);
+        });
+    }
+
+    // ======================================================================
+    // Send
+    // ======================================================================
+
+    /** Queue a command for writing. Adds a newline unless disabled. */
+    public void send(String command) {
+        UsbSerialPort p = port;
+        if (p == null || state != State.CONNECTED) {
+            fail("Not connected — command not sent.");
+            return;
+        }
+        final String wire = appendNewline && !command.endsWith("\n") ? command + "\n" : command;
+        ioExecutor.submit(() -> {
+            UsbSerialPort target = port;
+            if (target == null || !target.isOpen()) {
+                fail("Port closed before the command could be written.");
+                return;
+            }
             try {
-                port.setParameters(newBaud, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-                currentBaud = newBaud;
-                mainHandler.post(() -> log("Baud rate changed to " + newBaud));
+                target.write(wire.getBytes(StandardCharsets.UTF_8), WRITE_TIMEOUT_MS);
+                log(LogLevel.TX, command);
             } catch (IOException e) {
-                error("Baud change failed: " + e.getMessage());
+                fail("Write failed: " + e.getMessage());
+                teardown();
+                setState(State.DISCONNECTED, null);
             }
         });
     }
 
-    /** Send a string command. A trailing newline is added automatically. */
-    public void sendCommand(String command) {
-        if (port == null || !port.isOpen()) {
-            error("Not connected");
-            return;
-        }
-        final String cmd = command.endsWith("\n") ? command : command + "\n";
-        ioExecutor.submit(() -> {
-            try {
-                port.write(cmd.getBytes(), 1000);
-                mainHandler.post(() -> {
-                    if (listener != null) listener.onSerialLog("> " + command);
-                });
-            } catch (IOException e) {
-                error("Write failed: " + e.getMessage());
-            }
-        });
+    /** Send several commands in order. */
+    public void sendAll(String... commands) {
+        for (String c : commands) send(c);
     }
 
     public void release() {
         unregisterPermissionReceiver();
-        disconnect();
+        ioExecutor.submit(this::teardown);
         ioExecutor.shutdown();
+        listener = null;
     }
 
-    // === SerialInputOutputManager.Listener ===
+    // ======================================================================
+    // SerialInputOutputManager.Listener — called on the IO thread
+    // ======================================================================
 
     @Override
     public void onNewData(byte[] data) {
-        final String s = new String(data);
-        mainHandler.post(() -> {
-            if (listener != null) listener.onSerialDataReceived(s);
-        });
+        synchronized (rxLock) {
+            rxBuffer.append(new String(data, StandardCharsets.UTF_8));
+            if (flushScheduled) return;
+            flushScheduled = true;
+        }
+        mainHandler.postDelayed(this::flushRx, FLUSH_INTERVAL_MS);
+    }
+
+    private void flushRx() {
+        String chunk;
+        synchronized (rxLock) {
+            flushScheduled = false;
+            if (rxBuffer.length() == 0) return;
+            chunk = rxBuffer.toString();
+            rxBuffer.setLength(0);
+        }
+        Listener l = listener;
+        if (l != null) l.onSerialData(chunk);
     }
 
     @Override
     public void onRunError(Exception e) {
-        error("Run error: " + e.getMessage());
-        mainHandler.post(() -> {
-            if (listener != null) listener.onSerialDisconnected();
+        // The read thread has died: the cable was pulled, the board reset, or
+        // the chip stalled. Tear everything down so a later connect() works.
+        String message = e == null ? "unknown error" : String.valueOf(e.getMessage());
+        ioExecutor.submit(() -> {
+            teardown();
+            setState(State.DISCONNECTED, null);
+            log(LogLevel.ERROR, "Connection lost: " + message);
         });
     }
 
-    // === helpers ===
+    // ======================================================================
+    // Callbacks
+    // ======================================================================
 
-    private void log(String s) {
-        Log.d(TAG, s);
+    private void setState(State newState, String detail) {
+        state = newState;
         mainHandler.post(() -> {
-            if (listener != null) listener.onSerialLog(s);
+            Listener l = listener;
+            if (l != null) l.onStateChanged(newState, detail);
         });
     }
 
-    private void error(String s) {
-        Log.e(TAG, s);
+    private void log(LogLevel level, String message) {
+        if (level == LogLevel.ERROR) Log.e(TAG, message); else Log.d(TAG, message);
         mainHandler.post(() -> {
-            if (listener != null) listener.onSerialError(s);
+            Listener l = listener;
+            if (l != null) l.onLog(level, message);
         });
+    }
+
+    /** Report an error and make sure we are back in a connectable state. */
+    private void fail(String message) {
+        log(LogLevel.ERROR, message);
+        if (state == State.CONNECTING) setState(State.DISCONNECTED, null);
     }
 }
