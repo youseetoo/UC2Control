@@ -70,18 +70,48 @@ Version numbers come from the tag; untagged builds get
 
 ### Signed release builds (optional)
 
-Without a keystore, CI still produces a working *unsigned* release APK. To get
-signed output, add four repository secrets:
+Without a keystore, CI still produces a working *unsigned* release APK, and
+debug APKs are always signed with the standard debug key. Signing is only
+needed if you want a release APK that upgrades in place.
 
-| Secret | Value |
-|---|---|
-| `KEYSTORE_BASE64` | `base64 -i release.jks` |
-| `KEYSTORE_PASSWORD` | keystore password |
-| `KEY_ALIAS` | key alias |
-| `KEY_PASSWORD` | key password |
+**Never commit the keystore.** `keystore.properties`, `*.jks` and `*.keystore`
+are all git-ignored; reference the key by absolute path instead of copying it
+into the repo.
 
-Locally, put the same values in a `keystore.properties` file in the repo root
-(it is git-ignored).
+#### Locally
+
+Create `keystore.properties` in the repo root:
+
+```properties
+storeFile=/absolute/path/to/your.keystore
+storePassword=…
+keyAlias=…
+keyPassword=…
+```
+
+Then `./gradlew assembleRelease` produces `app-release.apk` (signed) instead of
+`app-release-unsigned.apk`. Forget the alias? `keytool -list -keystore <file>`
+lists it — it will prompt for the store password.
+
+#### In GitHub Actions
+
+Four repository secrets, set with the [`gh`](https://cli.github.com) CLI so the
+passwords never land in your shell history:
+
+```bash
+base64 -i /absolute/path/to/your.keystore | gh secret set KEYSTORE_BASE64
+gh secret set KEYSTORE_PASSWORD
+gh secret set KEY_ALIAS
+gh secret set KEY_PASSWORD
+```
+
+The last three prompt for the value and read it without echoing. You can also
+add them under **Settings ▸ Secrets and variables ▸ Actions** in the browser.
+
+The workflow decodes the key into `$RUNNER_TEMP` (outside the checkout, so it
+can never be swept into an artifact upload) and exports `KEYSTORE_FILE` for the
+release build. With the secrets absent, the decode step is skipped and the
+build falls through to unsigned — no failure, no branching to maintain.
 
 ---
 
