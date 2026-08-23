@@ -61,15 +61,61 @@ jobs:
       - name: Lint
         run: ./gradlew :app:lintDebug --stacktrace
 
-      - name: Decode signing keystore
+      - name: Decode and verify signing keystore
         # Runs only when KEYSTORE_BASE64 is set. Writes to RUNNER_TEMP rather
         # than the checkout so the key can never be picked up by an artifact
         # upload, and exports KEYSTORE_FILE for the release build below.
+        #
+        # The three checks below exist because AGP's own failures for a wrong
+        # alias or password are a KeytoolException buried in a Gradle stack
+        # trace, with every useful value masked as ***. Failing here instead
+        # says which of the four secrets is wrong, in one line.
         if: env.KEYSTORE_BASE64 != ''
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
-          echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
-          echo "Keystore decoded ($(stat -c%s "$RUNNER_TEMP/release.jks") bytes)"
+          set -euo pipefail
+          KS="$RUNNER_TEMP/release.jks"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$KS"
+
+          # 1. Is it a keystore at all?
+          if ! [ -s "$KS" ]; then
+            echo "::error::KEYSTORE_BASE64 decoded to an empty file. Re-run:"
+            echo "::error::  base64 -i /path/to/your.keystore | gh secret set KEYSTORE_BASE64"
+            exit 1
+          fi
+          echo "Keystore decoded ($(stat -c%s "$KS") bytes)"
+
+          # 2. Does the store password open it?
+          if ! keytool -list -keystore "$KS" -storepass "$KEYSTORE_PASSWORD" > /tmp/kslist 2>/tmp/kserr; then
+            echo "::error::KEYSTORE_PASSWORD is wrong (or the file is not a keystore)."
+            sed 's/^/    /' /tmp/kserr
+            exit 1
+          fi
+
+          # 3. Does the alias exist? keytool lowercases aliases on output.
+          #    Exact field compare, not a regex — an alias may contain . * [ etc.
+          if ! awk -F, -v want="$KEY_ALIAS" \
+               'BEGIN{want=tolower(want)} tolower($1)==want{f=1} END{exit !f}' \
+               /tmp/kslist; then
+            echo "::error::KEY_ALIAS not found in the keystore."
+            echo "::error::Aliases actually present (pick one of these):"
+            grep -E ', (PrivateKeyEntry|trustedCertEntry)' /tmp/kslist \
+              | cut -d, -f1 | sed 's/^/    /'
+            exit 1
+          fi
+
+          # 4. Does the key password open the private key? -certreq needs it and
+          #    changes nothing; output is discarded.
+          if ! keytool -certreq -alias "$KEY_ALIAS" -keystore "$KS" \
+                 -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" \
+                 > /dev/null 2>/tmp/kperr; then
+            echo "::error::KEY_PASSWORD is wrong for this alias."
+            echo "::error::On many Android Studio keystores it equals KEYSTORE_PASSWORD — try that."
+            sed 's/^/    /' /tmp/kperr
+            exit 1
+          fi
+
+          echo "Keystore, alias and both passwords verified."
+          echo "KEYSTORE_FILE=$KS" >> "$GITHUB_ENV"
 
       - name: Build debug APK
         if: github.event_name != 'workflow_dispatch' || inputs.build_type != 'release'

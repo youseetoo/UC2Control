@@ -93,6 +93,20 @@ Then `./gradlew assembleRelease` produces `app-release.apk` (signed) instead of
 `app-release-unsigned.apk`. Forget the alias? `keytool -list -keystore <file>`
 lists it — it will prompt for the store password.
 
+#### Finding the alias
+
+```bash
+keytool -list -keystore /absolute/path/to/your.keystore
+```
+
+It prompts for the **store** password and prints one line per entry:
+
+```
+myandroidkey0, 09.09.2019, PrivateKeyEntry,
+```
+
+The first field is the alias — that exact string is `KEY_ALIAS`.
+
 #### In GitHub Actions
 
 Four repository secrets, set with the [`gh`](https://cli.github.com) CLI so the
@@ -100,18 +114,31 @@ passwords never land in your shell history:
 
 ```bash
 base64 -i /absolute/path/to/your.keystore | gh secret set KEYSTORE_BASE64
+printf 'myandroidkey0' | gh secret set KEY_ALIAS
 gh secret set KEYSTORE_PASSWORD
-gh secret set KEY_ALIAS
 gh secret set KEY_PASSWORD
 ```
 
-The last three prompt for the value and read it without echoing. You can also
-add them under **Settings ▸ Secrets and variables ▸ Actions** in the browser.
+The last two prompt for the value and read it without echoing. You can also add
+them under **Settings ▸ Secrets and variables ▸ Actions** in the browser.
+
+| Secret | Value |
+|---|---|
+| `KEYSTORE_BASE64` | base64 of the keystore file |
+| `KEYSTORE_PASSWORD` | the password that opens the *store* |
+| `KEY_ALIAS` | the alias from `keytool -list` |
+| `KEY_PASSWORD` | the password of the *key*. Android Studio's "create new keystore" wizard offers to reuse the store password, so these are often — but not always — identical. |
 
 The workflow decodes the key into `$RUNNER_TEMP` (outside the checkout, so it
-can never be swept into an artifact upload) and exports `KEYSTORE_FILE` for the
-release build. With the secrets absent, the decode step is skipped and the
-build falls through to unsigned — no failure, no branching to maintain.
+can never be swept into an artifact upload) and verifies all four values before
+Gradle runs: keystore readable, store password correct, alias present, key
+password correct. A wrong value fails that step with a one-line message naming
+the culprit — and a wrong alias prints the aliases that *are* in the keystore.
+AGP's own error for this is a `KeytoolException` in a 40-line Gradle stack
+trace with every useful value masked as `***`.
+
+With the secrets absent the whole step is skipped and the build falls through
+to unsigned — no failure, no branching to maintain.
 
 ---
 
